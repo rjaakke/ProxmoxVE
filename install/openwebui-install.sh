@@ -78,7 +78,6 @@ msg_ok "Installed Open WebUI"
 read -r -p "Would you like to add Ollama? <y/N> " prompt
 if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
   msg_info "Installing Ollama"
-  mkdir -p /opt/ollama
   curl -fsSLO https://github.com/intel/ipex-llm/releases/download/v2.2.0-nightly/ollama-ipex-llm-2.2.0b20250318-ubuntu.tgz
   tar -C /opt -xzf ollama-ipex-llm-2.2.0b20250318-ubuntu.tgz
   mv /opt/ollama-ipex-llm-2.2.0b20250318-ubuntu /opt/ollama
