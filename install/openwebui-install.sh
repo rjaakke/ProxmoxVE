@@ -21,6 +21,26 @@ $STD apt-get install -y \
   ffmpeg
 msg_ok "Installed Dependencies"
 
+msg_info "Setting up Intel® Repositories"
+mkdir -p /etc/apt/keyrings
+curl -fsSL https://repositories.intel.com/gpu/intel-graphics.key | gpg --dearmor -o /etc/apt/keyrings/intel-graphics.gpg
+echo "deb [arch=amd64,i386 signed-by=/etc/apt/keyrings/intel-graphics.gpg] https://repositories.intel.com/gpu/ubuntu noble unified" >/etc/apt/sources.list.d/intel-gpu-noble.list
+curl -fsSL https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor -o /etc/apt/keyrings/oneapi-archive-keyring.gpg
+echo "deb [signed-by=/etc/apt/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" >/etc/apt/sources.list.d/oneAPI.list
+$STD apt-get update
+msg_ok "Set up Intel® Repositories"
+
+msg_info "Setting Up Hardware Acceleration"
+$STD apt-get -y install {va-driver-all,ocl-icd-libopencl1,intel-opencl-icd,vainfo,intel-gpu-tools,libze-intel-gpu1,libze1,clinfo,intel-gsc,libze-dev,intel-ocloc}
+if [[ "$CTTYPE" == "0" ]]; then
+  chgrp video /dev/dri
+  chmod 755 /dev/dri
+  chmod 660 /dev/dri/*
+  $STD adduser $(id -u -n) video
+  $STD adduser $(id -u -n) render
+fi
+msg_ok "Set Up Hardware Acceleration"
+
 msg_info "Setup Python3"
 $STD apt-get install -y --no-install-recommends \
   python3 \
@@ -58,9 +78,10 @@ msg_ok "Installed Open WebUI"
 read -r -p "Would you like to add Ollama? <y/N> " prompt
 if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
   msg_info "Installing Ollama"
-  curl -fsSLO https://ollama.com/download/ollama-linux-amd64.tgz
-  tar -C /usr -xzf ollama-linux-amd64.tgz
-  rm -rf ollama-linux-amd64.tgz
+  mkdir -p /opt/ollama
+  curl -fsSLO https://github.com/intel/ipex-llm/releases/download/v2.2.0-nightly/ollama-ipex-llm-2.2.0b20250318-ubuntu.tgz
+  tar -C /opt/ollama -xzf ollama-ipex-llm-2.2.0b20250318-ubuntu.tgz
+  rm -rf ollama-ipex-llm-2.2.0b20250318-ubuntu.tgz
   cat <<EOF >/etc/systemd/system/ollama.service
 [Unit]
 Description=Ollama Service
@@ -71,6 +92,17 @@ Type=exec
 ExecStart=/usr/bin/ollama serve
 Environment=HOME=$HOME
 Environment=OLLAMA_HOST=0.0.0.0
+Environment=OLLAMA_NUM_GPU=999
+Environment=no_proxy=localhost,127.0.0.1
+Environment=ZES_ENABLE_SYSMAN=1
+Environment=SYCL_CACHE_PERSISTENT=1
+Environment=OLLAMA_KEEP_ALIVE=10m
+# [optional] under most circumstances, the following environment variable may improve performance, but sometimes this may also cause performance degradation
+Environment=SYCL_PI_LEVEL_ZERO_USE_IMMEDIATE_COMMANDLISTS=1
+# [optional] if you want to run on single GPU, use below command to limit GPU may improve performance
+# Environment=ONEAPI_DEVICE_SELECTOR=level_zero:0
+# If you have more than one dGPUs, according to your configuration you can use configuration like below, it will use the first and second card.
+# Environment=ONEAPI_DEVICE_SELECTOR="level_zero:0;level_zero:1"
 Restart=always
 RestartSec=3
 
