@@ -80,7 +80,8 @@ if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
   msg_info "Installing Ollama"
   mkdir -p /opt/ollama
   curl -fsSLO https://github.com/intel/ipex-llm/releases/download/v2.2.0-nightly/ollama-ipex-llm-2.2.0b20250318-ubuntu.tgz
-  tar -C /opt/ollama -xzf ollama-ipex-llm-2.2.0b20250318-ubuntu.tgz
+  tar -C /opt -xzf ollama-ipex-llm-2.2.0b20250318-ubuntu.tgz
+  mv /opt/ollama-ipex-llm-2.2.0b20250318-ubuntu /opt/ollama
   rm -rf ollama-ipex-llm-2.2.0b20250318-ubuntu.tgz
   cat <<EOF >/etc/systemd/system/ollama.service
 [Unit]
@@ -89,7 +90,7 @@ After=network-online.target
 
 [Service]
 Type=exec
-ExecStart=/usr/bin/ollama serve
+ExecStart=/opt/ollama/ollama serve
 Environment=HOME=$HOME
 Environment=OLLAMA_HOST=0.0.0.0
 Environment=OLLAMA_NUM_GPU=999
